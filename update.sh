@@ -38,7 +38,7 @@ for version in "${versions[@]}"; do
 	)"
 	debianVersion="$(
 		curl -fsSL "$githubReleaseUrl" \
-			| grep -o "/rabbitmq-server_${rcVersion}[.].*_all[.]deb" \
+			| grep -o "/rabbitmq-server_${fullVersion//-/.}.*_all[.]deb" \
 			| head -1 \
 			| sed -r "s/^.*(${rcVersion}.*)_all[.]deb/\1/"
 	)"
@@ -48,17 +48,24 @@ for version in "${versions[@]}"; do
 		continue
 	fi
 
+	echo "$version: $fullVersion"
+
 	for variant in alpine debian; do
 		[ -f "$version/$variant/Dockerfile" ] || continue
 
-		(
-			set -x
-			sed -ri \
-				-e 's/^(ENV RABBITMQ_VERSION) .*/\1 '"$fullVersion"'/' \
-				-e 's/^(ENV RABBITMQ_GITHUB_TAG) .*/\1 '"$githubTag"'/' \
-				-e 's/^(ENV RABBITMQ_DEBIAN_VERSION) .*/\1 '"$debianVersion"'/' \
-				"$version/$variant/Dockerfile"
-		)
+		sed -ri \
+			-e 's/^(ENV RABBITMQ_VERSION) .*/\1 '"$fullVersion"'/' \
+			-e 's/^(ENV RABBITMQ_GITHUB_TAG) .*/\1 '"$githubTag"'/' \
+			-e 's/^(ENV RABBITMQ_DEBIAN_VERSION) .*/\1 '"$debianVersion"'/' \
+			"$version/$variant/Dockerfile"
+		cp -a "$version/docker-entrypoint.sh" "$version/$variant/"
+
+		managementFrom="rabbitmq:$version"
+		if [ "$variant" = 'alpine' ]; then
+			managementFrom+='-alpine'
+			sed -i 's/gosu/su-exec/g' "$version/$variant/docker-entrypoint.sh"
+		fi
+		sed -ri 's/^(FROM) .*$/FROM '"$managementFrom"'/' "$version/$variant/management/Dockerfile"
 
 		travisEnv='\n  - VERSION='"$version"' VARIANT='"$variant$travisEnv"
 	done

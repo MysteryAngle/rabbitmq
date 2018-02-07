@@ -39,6 +39,27 @@ RUN set -eux; \
 	\
 	apt-get purge -y --auto-remove $fetchDeps
 
+# RabbitMQ 3.6.15+ requires Erlang 19.3+ (and Stretch only has 19.2); https://www.rabbitmq.com/which-erlang.html
+# so we'll pull Erlang from Buster instead (not using Erlang Solutions since their multiarch support is extremely limited)
+RUN set -eux; \
+# add buster sources.list
+	sed 's/stretch/buster/g' /etc/apt/sources.list \
+		| tee /etc/apt/sources.list.d/buster.list; \
+# update apt-preferences such that we get only erlang* from buster (and erlang* only from buster)
+	{ \
+		echo 'Package: *'; \
+		echo 'Pin: release n=buster*'; \
+		echo 'Pin-Priority: -10'; \
+		echo; \
+		echo 'Package: erlang*'; \
+		echo 'Pin: release n=buster*'; \
+		echo 'Pin-Priority: 999'; \
+		echo; \
+		echo 'Package: erlang*'; \
+		echo 'Pin: release n=stretch*'; \
+		echo 'Pin-Priority: -10'; \
+	} | tee /etc/apt/preferences.d/buster-erlang
+
 # install Erlang
 RUN set -eux; \
 	apt-get update; \
@@ -74,9 +95,9 @@ ENV PATH /usr/lib/rabbitmq/bin:$PATH
 # gpg: key 6026DFCA: public key "RabbitMQ Release Signing Key <info@rabbitmq.com>" imported
 ENV RABBITMQ_GPG_KEY 0A9AF2115F4687BD29803A206B73A36E6026DFCA
 
-ENV RABBITMQ_VERSION 3.6.15
-ENV RABBITMQ_GITHUB_TAG rabbitmq_v3_6_15
-ENV RABBITMQ_DEBIAN_VERSION 3.6.15-1
+ENV RABBITMQ_VERSION 3.7.3
+ENV RABBITMQ_GITHUB_TAG v3.7.3
+ENV RABBITMQ_DEBIAN_VERSION 3.7.3-1
 
 RUN set -eux; \
 	\
@@ -98,6 +119,9 @@ RUN set -eux; \
 	rm -f rabbitmq-server.deb*; \
 	\
 	rm -rf /var/lib/apt/lists/*
+
+# warning: the VM is running with native name encoding of latin1 which may cause Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 (which can be verified by running "locale" in your shell)
+ENV LANG C.UTF-8
 
 # set home so that any `--user` knows where to put the erlang cookie
 ENV HOME /var/lib/rabbitmq

@@ -1,4 +1,4 @@
-FROM rabbitmq:3.6-alpine
+FROM rabbitmq:3.7
 
 RUN rabbitmq-plugins enable --offline rabbitmq_management
 
@@ -21,7 +21,9 @@ RUN set -eux; \
 	' -- /plugins/rabbitmq_management-*.ez > /usr/local/bin/rabbitmqadmin; \
 	[ -s /usr/local/bin/rabbitmqadmin ]; \
 	chmod +x /usr/local/bin/rabbitmqadmin; \
-	apk add --no-cache python; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends python; \
+	rm -rf /var/lib/apt/lists/*; \
 	rabbitmqadmin --version
 
 EXPOSE 15671 15672

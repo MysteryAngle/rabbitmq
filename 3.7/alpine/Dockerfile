@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3.7
 
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
 RUN addgroup -S rabbitmq && adduser -S -h /var/lib/rabbitmq -G rabbitmq rabbitmq
@@ -36,8 +36,8 @@ ENV PATH $RABBITMQ_HOME/sbin:$PATH
 # gpg: key 6026DFCA: public key "RabbitMQ Release Signing Key <info@rabbitmq.com>" imported
 ENV RABBITMQ_GPG_KEY 0A9AF2115F4687BD29803A206B73A36E6026DFCA
 
-ENV RABBITMQ_VERSION 3.6.15
-ENV RABBITMQ_GITHUB_TAG rabbitmq_v3_6_15
+ENV RABBITMQ_VERSION 3.7.3
+ENV RABBITMQ_GITHUB_TAG v3.7.3
 
 RUN set -ex; \
 	\
@@ -76,9 +76,9 @@ RUN set -ex; \
 # set home so that any `--user` knows where to put the erlang cookie
 ENV HOME /var/lib/rabbitmq
 
-RUN mkdir -p /var/lib/rabbitmq /etc/rabbitmq \
-	&& chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /etc/rabbitmq \
-	&& chmod -R 777 /var/lib/rabbitmq /etc/rabbitmq
+RUN mkdir -p /var/lib/rabbitmq /etc/rabbitmq /var/log/rabbitmq \
+	&& chown -R rabbitmq:rabbitmq /var/lib/rabbitmq /etc/rabbitmq /var/log/rabbitmq \
+	&& chmod -R 777 /var/lib/rabbitmq /etc/rabbitmq /var/log/rabbitmq
 VOLUME /var/lib/rabbitmq
 
 # add a symlink to the .erlang.cookie in /root so we can "docker exec rabbitmqctl ..." without gosu
